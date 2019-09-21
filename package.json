@@ -1,0 +1,13 @@
+{
+  "name": "leetcode-spider",
+  "version": "1.0.0",
+  "description": "",
+  "repository": "https://github.com/uniquexiaobai/leetcode-spider",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "uniquexiaobai@gmail.com",
+  "license": "ISC"
+}
