@@ -4,10 +4,7 @@ const axios = require('axios');
 const FormData = require('form-data');
 const _ = require('lodash');
 
-const leetcodeConfig = require(path.resolve(
-	process.cwd(),
-	'./leetcode.config',
-));
+const leetcodeConfig = require(path.resolve(process.cwd(), './.leetcode'));
 
 const baseUrl = 'https://leetcode-cn.com';
 
@@ -331,7 +328,7 @@ const getLeetcodeData = async (leetcodeConfig) => {
 		}
 		return acc;
 	}, []);
-	data.problems = data.problems.slice(0, 1); // test
+	data.problems = data.problems.slice(0, 10); // test
 
 	const questionsAndLastSubmissions = await Promise.all(
 		data.problems.map((problem) => {
@@ -352,7 +349,7 @@ const getLeetcodeData = async (leetcodeConfig) => {
 };
 
 const generateMarkdown = (problems = []) => {
-	const dir = path.resolve(process.cwd(), './solutions');
+	const dir = path.resolve(process.cwd(), './docs');
 
 	fs.stat(dir, (err, stats) => {
 		if (err || !stats.isDirectory(dir)) {
@@ -362,7 +359,7 @@ const generateMarkdown = (problems = []) => {
 		problems.map((problem) => {
 			generateFile(problem);
 		});
-	});
+    });
 
 	function generateFile(problem) {
 		const id = problem.question_id;
@@ -379,7 +376,7 @@ const generateMarkdown = (problems = []) => {
 		md += '---\n';
 		md += `\n\`\`\`javascript\n${problem.lastSubmission.code}\n\`\`\``;
 
-		fs.writeFile(`${dir}/${id}.${titleSlug}.md`, md, (err) => {
+		fs.writeFile(`${dir}/${titleSlug}.md`, md, (err) => {
 			if (err) {
 				console.log(err);
 			} else {
@@ -390,16 +387,16 @@ const generateMarkdown = (problems = []) => {
 };
 
 const generateSummary = (data = {}) => {
-	const file = path.resolve(process.cwd(), './summary.json');
+	const file = path.resolve(process.cwd(), './guide.json');
 	const summary = Object.assign({}, data, {
 		problems: data.problems.map((problem) => problem.question__title_slug),
-	});
-	// console.log(summary);
+    });
+    
 	fs.writeFile(file, JSON.stringify(summary, null, '  '), (err) => {
 		if (err) {
 			console.log(err);
 		} else {
-			console.log('summary saved');
+			console.log(`total ${summary.problems.length} solutions saved\n`);
 		}
 	});
 };
