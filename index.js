@@ -317,7 +317,7 @@ const getLeetcodeData = async (leetcodeConfig) => {
 	data.user = _.pick(problems, ['user_name']);
 	data.progress = _.pick(problems, [
 		'num_solved',
-		'num_solved',
+		'num_total',
 		'ac_easy',
 		'ac_medium',
 		'ac_hard',
@@ -328,7 +328,7 @@ const getLeetcodeData = async (leetcodeConfig) => {
 		}
 		return acc;
 	}, []);
-	data.problems = data.problems.slice(0, 10); // test
+	data.problems = data.problems.slice(-10); // test
 
 	const questionsAndLastSubmissions = await Promise.all(
 		data.problems.map((problem) => {
@@ -345,6 +345,8 @@ const getLeetcodeData = async (leetcodeConfig) => {
 			questionsAndLastSubmissions[index][1];
 	});
 
+	data.problems.sort((p1, p2) => p1.question_id - p2.question_id);
+
 	return data;
 };
 
@@ -359,7 +361,7 @@ const generateMarkdown = (problems = []) => {
 		problems.map((problem) => {
 			generateFile(problem);
 		});
-    });
+	});
 
 	function generateFile(problem) {
 		const id = problem.question_id;
@@ -371,7 +373,9 @@ const generateMarkdown = (problems = []) => {
 		md += `<p style={{marginBottom: '10px'}}><span className="badge badge--primary">${difficulty}</span></p>\n\n`;
 		md += `import Question from './question';\n\n`;
 		md += `<Question>\n`;
-		md += `${problem.question.content.replace(/\<br\>/g, '<br />')}\n`;
+		md += `${problem.question.content
+			.replace(/\<br\>/g, '<br />')
+			.replace(/\&\#39\;/g, "'")}\n`;
 		md += `</Question>\n\n`;
 		md += '---\n';
 		md += `\n\`\`\`javascript\n${problem.lastSubmission.code}\n\`\`\``;
@@ -390,8 +394,8 @@ const generateSummary = (data = {}) => {
 	const file = path.resolve(process.cwd(), './guide.json');
 	const summary = Object.assign({}, data, {
 		problems: data.problems.map((problem) => problem.question__title_slug),
-    });
-    
+	});
+
 	fs.writeFile(file, JSON.stringify(summary, null, '  '), (err) => {
 		if (err) {
 			console.log(err);
