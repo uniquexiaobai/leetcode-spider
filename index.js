@@ -309,9 +309,41 @@ const getLastSubmission = async (cookie, qid, lang = 'javascript') => {
 	return response.data;
 };
 
+const getSubmissions = async (cookie, offset = 0, limit = 20) => {
+	const response = await axios.get(`${baseUrl}/api/submissions`, {
+		params: {
+			offset,
+			limit,
+		},
+		headers: {
+			Cookie: cookie,
+		},
+	});
+
+	return response.data;
+};
+
+const getAllSubmissions = async (cookie) => {
+	const submissions = [];
+	const batchIndexs = Array.from({ length: 5 }, (_, index) => index);
+	let hasMore = true;
+
+	for (const index of batchIndexs) {
+		if (!hasMore) break;
+		const data = await getSubmissions(cookie, index * 20);
+		hasMore = data.has_next;
+		submissions.push(...data.submissions_dump);
+	}
+
+	return submissions;
+};
+
 const getLeetcodeData = async (leetcodeConfig) => {
 	const cookie = await getSession(leetcodeConfig);
-	const problems = await getProblems(cookie);
+	const [problems, submissions] = await Promise.all([
+		getProblems(cookie),
+		getAllSubmissions(cookie),
+	]);
 
 	const data = {};
 	data.user = _.pick(problems, ['user_name']);
@@ -328,6 +360,7 @@ const getLeetcodeData = async (leetcodeConfig) => {
 		}
 		return acc;
 	}, []);
+
 	data.problems = data.problems.slice(-10); // test
 
 	const questionsAndLastSubmissions = await Promise.all(
@@ -346,6 +379,10 @@ const getLeetcodeData = async (leetcodeConfig) => {
 	});
 
 	data.problems.sort((p1, p2) => p1.question_id - p2.question_id);
+
+	data.submissions = submissions.map((submission) =>
+		_.pick(submission, ['time', 'title', 'timestamp']),
+	);
 
 	return data;
 };
@@ -400,14 +437,20 @@ const generateSummary = (data = {}) => {
 		if (err) {
 			console.log(err);
 		} else {
-			console.log(`total ${summary.problems.length} solutions saved\n`);
+			console.log(`${summary.problems.length} solutions\n`);
 		}
 	});
 };
 
 module.exports = function() {
-	getLeetcodeData(leetcodeConfig).then((data) => {
-		generateSummary(data);
-		generateMarkdown(data.problems);
-	});
+	const start = Date.now();
+
+	getLeetcodeData(leetcodeConfig)
+		.then((data) => {
+			console.log(`${Date.now() - start} ms`);
+
+			generateSummary(data);
+			generateMarkdown(data.problems);
+		})
+		.catch(console.log);
 };
