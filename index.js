@@ -309,43 +309,18 @@ const getLastSubmission = async (cookie, qid, lang = 'javascript') => {
 	return response.data;
 };
 
-const getSubmissions = async (cookie, offset = 0, limit = 20) => {
-	const response = await axios.get(`${baseUrl}/api/submissions`, {
-		params: {
-			offset,
-			limit,
-		},
-		headers: {
-			Cookie: cookie,
-		},
-	});
-
-	return response.data;
-};
-
-const getAllSubmissions = async (cookie) => {
-	const submissions = [];
-	const batchIndexs = Array.from({ length: 5 }, (_, index) => index);
-	let hasMore = true;
-
-	for (const index of batchIndexs) {
-		if (!hasMore) break;
-		const data = await getSubmissions(cookie, index * 20);
-		hasMore = data.has_next;
-		submissions.push(...data.submissions_dump);
-	}
-
-	return submissions;
+const getSubmissionCalendar = async (username) => {
+	const response = await axios.get(`${baseUrl}/api/user_submission_calendar/${username}`);
+    
+	return JSON.parse(response.data);
 };
 
 const getLeetcodeData = async (leetcodeConfig) => {
 	const cookie = await getSession(leetcodeConfig);
-	const [problems, submissions] = await Promise.all([
-		getProblems(cookie),
-		getAllSubmissions(cookie),
-	]);
+	const problems = await getProblems(cookie);
+    const submissions = await getSubmissionCalendar(problems.user_name);
 
-	const data = {};
+    const data = {};
 	data.user = _.pick(problems, ['user_name']);
 	data.progress = _.pick(problems, [
 		'num_solved',
@@ -378,11 +353,9 @@ const getLeetcodeData = async (leetcodeConfig) => {
 			questionsAndLastSubmissions[index][1];
 	});
 
-	data.problems.sort((p1, p2) => p1.question_id - p2.question_id);
-
-	data.submissions = submissions.map((submission) =>
-		_.pick(submission, ['time', 'title', 'timestamp']),
-	);
+    data.problems.sort((p1, p2) => p1.question_id - p2.question_id);
+    
+    data.submissions = submissions;
 
 	return data;
 };
