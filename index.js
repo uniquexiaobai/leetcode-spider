@@ -336,7 +336,7 @@ const getLeetcodeData = async (leetcodeConfig) => {
 		return acc;
 	}, []);
 
-	data.problems = data.problems.slice(-10); // test
+	data.problems = data.problems.slice(-50); // test
 
 	const questionsAndLastSubmissions = await Promise.all(
 		data.problems.map((problem) => {
@@ -382,10 +382,12 @@ const generateMarkdown = (problems = []) => {
 		let md = `---\nid: ${titleSlug}\ntitle: ${id}.${title}\nsidebar_label: ${id}.${titleSlug}\n---\n\n`;
 		md += `<p style={{marginBottom: '10px'}}><span className="badge badge--primary">${difficulty}</span></p>\n\n`;
 		md += `import Question from './question';\n\n`;
-		md += `<Question>\n`;
+		md += `<Question>\n\n`;
 		md += `${problem.question.content
 			.replace(/\<br\>/g, '<br />')
-			.replace(/\&\#39\;/g, "'")}\n`;
+            .replace(/\&\#39\;/g, "'")
+            .replace(/&nbsp;/g, ' ')
+            .replace(/\);/g, ')')}\n`;
 		md += `</Question>\n\n`;
 		md += '---\n';
 		md += `\n\`\`\`javascript\n${problem.lastSubmission.code}\n\`\`\``;
