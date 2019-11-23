@@ -26,7 +26,7 @@ const getCsrf = async () => {
 	return csrf;
 };
 
-const getSession = async (account) => {
+const getSession = async account => {
 	const loginUrl = `${baseUrl}/accounts/login/`;
 	const csrf = await getCsrf();
 	const formData = getLoginFormData(account, csrf);
@@ -38,17 +38,15 @@ const getSession = async (account) => {
 			Cookie: `csrftoken=${csrf}`,
 		},
 		maxRedirects: 0,
-		validateStatus: (status) => status === 302,
+		validateStatus: status => status === 302,
 	});
 
-	const session = response.headers['set-cookie']
-		.map((item) => item.split(';')[0])
-		.join(';');
+	const session = response.headers['set-cookie'].map(item => item.split(';')[0]).join(';');
 
 	return session;
 };
 
-const getProgress = async (cookie) => {
+const getProgress = async cookie => {
 	const response = await axios.get(`${baseUrl}/api/progress/all`, {
 		headers: {
 			Cookie: cookie,
@@ -58,7 +56,7 @@ const getProgress = async (cookie) => {
 	return response.data;
 };
 
-const getProblems = async (cookie) => {
+const getProblems = async cookie => {
 	const response = await axios.get(`${baseUrl}/api/problems/all`, {
 		headers: {
 			Cookie: cookie,
@@ -84,7 +82,7 @@ const getFavorites = async (cookie = '') => {
 	return response.data;
 };
 
-const getGlobalData = async (cookie) => {
+const getGlobalData = async cookie => {
 	const query = `
         query globalData {
             feature {
@@ -154,21 +152,17 @@ const getGlobalData = async (cookie) => {
         }
     `;
 
-	const response = await axios.post(
-		`${baseUrl}/graphql`,
-		JSON.stringify({ query }),
-		{
-			headers: {
-				'Content-Type': 'application/json',
-				Cookie: cookie,
-			},
+	const response = await axios.post(`${baseUrl}/graphql`, JSON.stringify({ query }), {
+		headers: {
+			'Content-Type': 'application/json',
+			Cookie: cookie,
 		},
-	);
+	});
 
 	return response.data;
 };
 
-const getQuestionsStatuses = async (cookie) => {
+const getQuestionsStatuses = async cookie => {
 	const query = `
         query allQuestionsStatuses {
             allQuestions {
@@ -183,21 +177,17 @@ const getQuestionsStatuses = async (cookie) => {
         }
     `;
 
-	const response = await axios.post(
-		`${baseUrl}/graphql`,
-		JSON.stringify({ query }),
-		{
-			headers: {
-				'Content-Type': 'application/json',
-				Cookie: cookie,
-			},
+	const response = await axios.post(`${baseUrl}/graphql`, JSON.stringify({ query }), {
+		headers: {
+			'Content-Type': 'application/json',
+			Cookie: cookie,
 		},
-	);
+	});
 
 	return response.data;
 };
 
-const getQuestionTranslation = async (cookie) => {
+const getQuestionTranslation = async cookie => {
 	const query = `
         query getQuestionTranslation($lang: String) {
             translations: allAppliedQuestionTranslations(lang: $lang) {
@@ -208,16 +198,12 @@ const getQuestionTranslation = async (cookie) => {
         }
     `;
 
-	const response = await axios.post(
-		`${baseUrl}/graphql`,
-		JSON.stringify({ query }),
-		{
-			headers: {
-				'Content-Type': 'application/json',
-				Cookie: cookie,
-			},
+	const response = await axios.post(`${baseUrl}/graphql`, JSON.stringify({ query }), {
+		headers: {
+			'Content-Type': 'application/json',
+			Cookie: cookie,
 		},
-	);
+	});
 
 	return response.data;
 };
@@ -281,16 +267,12 @@ const getQuestionData = async (cookie, titleSlug) => {
         }
     `;
 
-	const response = await axios.post(
-		`${baseUrl}/graphql`,
-		JSON.stringify({ query }),
-		{
-			headers: {
-				'Content-Type': 'application/json',
-				Cookie: cookie,
-			},
+	const response = await axios.post(`${baseUrl}/graphql`, JSON.stringify({ query }), {
+		headers: {
+			'Content-Type': 'application/json',
+			Cookie: cookie,
 		},
-	);
+	});
 
 	return response.data;
 };
@@ -309,18 +291,18 @@ const getLastSubmission = async (cookie, qid, lang = 'javascript') => {
 	return response.data;
 };
 
-const getSubmissionCalendar = async (username) => {
+const getSubmissionCalendar = async username => {
 	const response = await axios.get(`${baseUrl}/api/user_submission_calendar/${username}`);
-    
+
 	return JSON.parse(response.data);
 };
 
-const getLeetcodeData = async (leetcodeConfig) => {
+const getLeetcodeData = async leetcodeConfig => {
 	const cookie = await getSession(leetcodeConfig);
 	const problems = await getProblems(cookie);
-    const submissions = await getSubmissionCalendar(problems.user_name);
+	const submissions = await getSubmissionCalendar(problems.user_name);
 
-    const data = {};
+	const data = {};
 	data.user = _.pick(problems, ['user_name']);
 	data.progress = _.pick(problems, [
 		'num_solved',
@@ -339,23 +321,21 @@ const getLeetcodeData = async (leetcodeConfig) => {
 	data.problems = data.problems.slice(-50); // test
 
 	const questionsAndLastSubmissions = await Promise.all(
-		data.problems.map((problem) => {
+		data.problems.map(problem => {
 			return Promise.all([
 				getQuestionData(cookie, problem.question__title_slug),
 				getLastSubmission(cookie, problem.question_id),
 			]);
-		}),
+		})
 	);
 	data.problems.forEach((problem, index) => {
-		data.problems[index].question =
-			questionsAndLastSubmissions[index][0].data.question;
-		data.problems[index].lastSubmission =
-			questionsAndLastSubmissions[index][1];
+		data.problems[index].question = questionsAndLastSubmissions[index][0].data.question;
+		data.problems[index].lastSubmission = questionsAndLastSubmissions[index][1];
 	});
 
-    data.problems.sort((p1, p2) => p1.question_id - p2.question_id);
-    
-    data.submissions = submissions;
+	data.problems.sort((p1, p2) => p1.question_id - p2.question_id);
+
+	data.submissions = submissions;
 
 	return data;
 };
@@ -368,7 +348,7 @@ const generateMarkdown = (problems = []) => {
 			fs.mkdirSync(dir);
 		}
 
-		problems.map((problem) => {
+		problems.map(problem => {
 			generateFile(problem);
 		});
 	});
@@ -380,23 +360,23 @@ const generateMarkdown = (problems = []) => {
 		const { difficulty } = problem.question;
 
 		let md = `---\nid: ${titleSlug}\ntitle: ${id}.${title}\nsidebar_label: ${id}.${titleSlug}\n---\n\n`;
-		md += `<p style={{marginBottom: '10px'}}><span className="badge badge--primary">${difficulty}</span></p>\n\n`;
+		md += `<p><span className="badge badge--primary">${difficulty}</span></p>\n\n`;
 		md += `import Question from './question';\n\n`;
 		md += `<Question>\n\n`;
-		md += `${problem.question.content
+		md += `${problem.question.translatedContent
+			.replace(/(<img.*?)>/g, '$1/>')
 			.replace(/\<br\>/g, '<br />')
-            .replace(/\&\#39\;/g, "'")
-            .replace(/&nbsp;/g, ' ')
-            .replace(/\);/g, ')')}\n`;
+			.replace(/\&\#39\;/g, "'")
+			.replace(/&nbsp;/g, ' ')
+			.replace(/\);/g, ')')}\n`;
 		md += `</Question>\n\n`;
-		md += '---\n';
 		md += `\n\`\`\`javascript\n${problem.lastSubmission.code}\n\`\`\``;
 
-		fs.writeFile(`${dir}/${titleSlug}.md`, md, (err) => {
+		fs.writeFile(`${dir}/${titleSlug}.md`, md, err => {
 			if (err) {
 				console.log(err);
 			} else {
-				console.log(`${id}.${titleSlug}`);
+				// console.log(`${id}.${titleSlug}`);
 			}
 		});
 	}
@@ -405,10 +385,10 @@ const generateMarkdown = (problems = []) => {
 const generateSummary = (data = {}) => {
 	const file = path.resolve(process.cwd(), './guide.json');
 	const summary = Object.assign({}, data, {
-		problems: data.problems.map((problem) => problem.question__title_slug),
+		problems: data.problems.map(problem => problem.question__title_slug),
 	});
 
-	fs.writeFile(file, JSON.stringify(summary, null, '  '), (err) => {
+	fs.writeFile(file, JSON.stringify(summary, null, '  '), err => {
 		if (err) {
 			console.log(err);
 		} else {
@@ -421,11 +401,11 @@ module.exports = function() {
 	const start = Date.now();
 
 	getLeetcodeData(leetcodeConfig)
-		.then((data) => {
-			console.log(`${Date.now() - start} ms`);
-
+		.then(data => {
 			generateSummary(data);
 			generateMarkdown(data.problems);
+
+			console.log(`${Date.now() - start} ms`);
 		})
 		.catch(console.log);
 };
