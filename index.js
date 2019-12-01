@@ -318,7 +318,7 @@ const getLeetcodeData = async leetcodeConfig => {
 		return acc;
 	}, []);
 
-	data.problems = data.problems.slice(-50); // test
+	data.problems = data.problems.slice(-150); // test
 
 	const questionsAndLastSubmissions = await Promise.all(
 		data.problems.map(problem => {
