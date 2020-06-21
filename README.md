@@ -12,6 +12,15 @@ npm i @lokibai/leetcode-spider
 
 ## Usage
 
+`.leetcode.json`
+```json
+{
+	"username": "xxx",
+	"password": "xxx",
+	"dist": "./docs/solutions"
+}
+```
+
 ```bash
-leetcode-spider
+$ leetcode-spider
 ```

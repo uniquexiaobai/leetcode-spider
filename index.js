@@ -3,10 +3,16 @@ const path = require('path');
 const axios = require('axios');
 const FormData = require('form-data');
 const _ = require('lodash');
+const unified = require('unified');
+const visit = require('unist-util-visit');
+const parse = require('rehype-parse');
+const toMdast = require('hast-util-to-mdast');
+const stringify = require('remark-stringify');
 
 const leetcodeConfig = require(path.resolve(process.cwd(), './.leetcode'));
-
+const dist = leetcodeConfig.dist || './docs';
 const baseUrl = 'https://leetcode-cn.com';
+const count = 0; // 0
 
 const getLoginFormData = (account, csrf) => {
 	const formData = new FormData();
@@ -318,7 +324,7 @@ const getLeetcodeData = async leetcodeConfig => {
 		return acc;
 	}, []);
 
-	data.problems = data.problems.slice(-150); // test
+	data.problems = data.problems.slice(-count);
 
 	const questionsAndLastSubmissions = await Promise.all(
 		data.problems.map(problem => {
@@ -340,8 +346,24 @@ const getLeetcodeData = async leetcodeConfig => {
 	return data;
 };
 
+const transformContent = (source) => {
+  const hast = unified().use(parse).parse(source);
+
+  // TODO 格式化
+  visit(hast, node => {
+    if (node.tagName === 'pre') {
+      node.tagName = 'p';
+    }
+  });
+
+  const mdast = toMdast(hast);
+  const output = unified().use(stringify).stringify(mdast);
+
+  return output;
+}
+
 const generateMarkdown = (problems = []) => {
-	const dir = path.resolve(process.cwd(), './docs');
+	const dir = path.resolve(process.cwd(), dist);
 
 	fs.stat(dir, (err, stats) => {
 		if (err || !stats.isDirectory(dir)) {
@@ -357,19 +379,11 @@ const generateMarkdown = (problems = []) => {
 		const id = problem.question_id;
 		const title = problem.question__title;
 		const titleSlug = problem.question__title_slug;
-		const { difficulty } = problem.question;
+		// const { difficulty } = problem.question;
 
-		let md = `---\nid: ${titleSlug}\ntitle: ${id}.${title}\nsidebar_label: ${id}.${titleSlug}\n---\n\n`;
-		md += `<p><span className="badge badge--primary">${difficulty}</span></p>\n\n`;
-		md += `import Question from './question';\n\n`;
-		md += `<Question>\n\n`;
-		md += `${problem.question.translatedContent
-			.replace(/(<img.*?)>/g, '$1/>')
-			.replace(/\<br\>/g, '<br />')
-			.replace(/\&\#39\;/g, "'")
-			.replace(/&nbsp;/g, ' ')
-			.replace(/\);/g, ')')}\n`;
-		md += `</Question>\n\n`;
+    let md = `---\nid: ${titleSlug}\ntitle: ${id}. ${title}\n---\n\n`;
+    md +=  `# ${title}\n\n`;
+    md += `${transformContent(problem.question.translatedContent)}\n\n`;
 		md += `\n\`\`\`javascript\n${problem.lastSubmission.code}\n\`\`\``;
 
 		fs.writeFile(`${dir}/${titleSlug}.md`, md, err => {
@@ -383,7 +397,7 @@ const generateMarkdown = (problems = []) => {
 };
 
 const generateSummary = (data = {}) => {
-	const file = path.resolve(process.cwd(), './guide.json');
+	const file = path.resolve(process.cwd(), dist, './guide.json');
 	const summary = Object.assign({}, data, {
 		problems: data.problems.map(problem => problem.question__title_slug),
 	});
